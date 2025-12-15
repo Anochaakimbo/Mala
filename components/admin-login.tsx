@@ -18,35 +18,35 @@ export function AdminLogin() {
   const [error, setError] = useState("")
   const [menuItems, setMenuItems] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMenu, setIsLoadingMenu] = useState(false)
 
   useEffect(() => {
-    // ตรวจสอบว่ามี session อยู่ใน localStorage หรือไม่
     const session = localStorage.getItem("admin_session")
     if (session === "authenticated") {
       setIsAuthenticated(true)
+      fetchMenuItems()
+    } else {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }, [])
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchMenuItems()
-    }
-  }, [isAuthenticated])
-
   const fetchMenuItems = async () => {
+    setIsLoadingMenu(true)
     const supabase = createClient()
     const { data } = await supabase.from("menu_items").select("*").order("created_at", { ascending: false })
     setMenuItems(data || [])
+    setIsLoadingMenu(false)
+    setIsLoading(false)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (password === ADMIN_PASSWORD) {
       setIsAuthenticated(true)
       localStorage.setItem("admin_session", "authenticated")
       setError("")
+      await fetchMenuItems()
     } else {
       setError("รหัสผ่านไม่ถูกต้อง")
     }
@@ -58,10 +58,13 @@ export function AdminLogin() {
     setPassword("")
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingMenu) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-muted-foreground">กำลังโหลด...</p>
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-red-600 border-r-transparent mb-4"></div>
+          <p className="text-muted-foreground">กำลังโหลด...</p>
+        </div>
       </div>
     )
   }
