@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowLeft, Upload, Loader2 } from "lucide-react"
 import { getCart, getCartTotalWithDiscount, clearCart, getSessionId, saveOrderToHistory } from "@/lib/cart-storage"
 import { createBrowserClient } from "@/lib/supabase/client"
@@ -23,10 +24,12 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { toast } = useToast()
 
+  const [deliveryLocationOption, setDeliveryLocationOption] = useState("ร้าน HashTag(#)")
+
   const [formData, setFormData] = useState({
     customerName: "",
     customerPhone: "",
-    deliveryAddress: "",
+    customDeliveryAddress: "",
     spiceLevel: "เผ็ดกลาง",
     notes: "",
   })
@@ -51,6 +54,17 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const deliveryAddress = deliveryLocationOption === "อื่นๆ" ? formData.customDeliveryAddress : deliveryLocationOption
+
+    if (deliveryLocationOption === "อื่นๆ" && !formData.customDeliveryAddress.trim()) {
+      toast({
+        title: "กรุณากรอกสถานที่จัดส่ง",
+        description: "จำเป็นต้องระบุสถานที่จัดส่ง",
+        variant: "destructive",
+      })
+      return
+    }
 
     if (!slipFile) {
       toast({
@@ -88,9 +102,9 @@ export default function CheckoutPage() {
           session_id: sessionId,
           customer_name: formData.customerName,
           customer_phone: formData.customerPhone,
-          delivery_address: formData.deliveryAddress,
+          delivery_address: deliveryAddress,
           spice_level: formData.spiceLevel,
-          payment_method: "slip", // Only slip payment now
+          payment_method: "slip",
           payment_slip_url: paymentSlipUrl,
           subtotal_amount: subtotal,
           discount_amount: discount,
@@ -183,15 +197,65 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="deliveryAddress">สถานที่จัดส่ง *</Label>
-                  <Textarea
-                    id="deliveryAddress"
-                    required
-                    value={formData.deliveryAddress}
-                    onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
-                    placeholder="กรอกที่อยู่จัดส่ง"
-                    rows={3}
-                  />
+                  <Label>สถานที่จัดส่ง *</Label>
+                  <RadioGroup
+                    value={deliveryLocationOption}
+                    onValueChange={setDeliveryLocationOption}
+                    className="mt-2 space-y-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="ร้าน HashTag(#)" id="location-hashtag" />
+                      <Label htmlFor="location-hashtag" className="font-normal cursor-pointer">
+                        HashTag(#)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Replay" id="location-replay" />
+                      <Label htmlFor="location-replay" className="font-normal cursor-pointer">
+                        Replay
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Be-to-Sit" id="location-betosit" />
+                      <Label htmlFor="location-betosit" className="font-normal cursor-pointer">
+                        Be-to-Sit
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="พร้อมมิตร" id="location-phrommit" />
+                      <Label htmlFor="location-phrommit" className="font-normal cursor-pointer">
+                        พร้อมมิตร
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="อโลน" id="location-alone" />
+                      <Label htmlFor="location-alone" className="font-normal cursor-pointer">
+                        อโลน
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="หลังมอ" id="location-langmo" />
+                      <Label htmlFor="location-langmo" className="font-normal cursor-pointer">
+                        หลังมอ
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="อื่นๆ" id="location-other" />
+                      <Label htmlFor="location-other" className="font-normal cursor-pointer">
+                        อื่นๆ (ลูกค้าสามารถให้ไปส่งหอบริเวณใกล้เคียงได้)
+                      </Label>
+                    </div>
+                  </RadioGroup>
+
+                  {deliveryLocationOption === "อื่นๆ" && (
+                    <Textarea
+                      className="mt-2"
+                      value={formData.customDeliveryAddress}
+                      onChange={(e) => setFormData({ ...formData, customDeliveryAddress: e.target.value })}
+                      placeholder="กรอกสถานที่จัดส่ง"
+                      rows={3}
+                    />
+                  )}
                 </div>
 
                 <div>
