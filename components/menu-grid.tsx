@@ -2,6 +2,10 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
+import { addToCart } from "@/lib/cart-storage"
+import { useToast } from "@/hooks/use-toast"
 
 type MenuItem = {
   id: string
@@ -15,6 +19,26 @@ type MenuItem = {
 }
 
 export function MenuGrid({ items }: { items: MenuItem[] }) {
+  const { toast } = useToast()
+
+  const handleAddToCart = (item: MenuItem) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      name_en: item.name_en,
+      price: item.price,
+      image_url: item.image_url,
+    })
+
+    // Dispatch custom event to update cart count
+    window.dispatchEvent(new Event("cart-updated"))
+
+    toast({
+      title: "เพิ่มลงตะกร้าแล้ว",
+      description: `${item.name} ถูกเพิ่มในตะกร้าของคุณ`,
+    })
+  }
+
   if (!items || items.length === 0) {
     return (
       <div className="text-center py-12">
@@ -50,6 +74,13 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
                   </Badge>
                 </div>
               </div>
+              <Button
+                onClick={() => handleAddToCart(item)}
+                className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                เพิ่มลงตะกร้า
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { MenuGrid } from "@/components/menu-grid"
+import { CartButton } from "@/components/cart-button"
+import { OrderHistory } from "@/components/order-history"
 import { Flame } from "lucide-react"
+import { Toaster } from "@/components/ui/toaster"
 
 export default async function Home() {
   const supabase = await createClient()
@@ -28,8 +31,13 @@ export default async function Home() {
 
       {/* Menu Content */}
       <main className="container mx-auto px-4 py-6">
+        <OrderHistory />
+
         <MenuGrid items={menuItems || []} />
       </main>
+
+      <CartButton />
+      <Toaster />
 
       {/* Footer */}
       <footer className="bg-red-900 text-white py-6 mt-12">
