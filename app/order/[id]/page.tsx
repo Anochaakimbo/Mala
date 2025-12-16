@@ -32,7 +32,6 @@ type OrderItem = {
 
 const statusMap: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "รอดำเนินการ", color: "bg-yellow-500", icon: Clock },
-  confirmed: { label: "ยืนยันแล้ว", color: "bg-blue-500", icon: CheckCircle2 },
   preparing: { label: "กำลังเตรียม", color: "bg-orange-500", icon: Loader2 },
   ready: { label: "พร้อมส่ง", color: "bg-green-500", icon: CheckCircle2 },
   completed: { label: "เสร็จสิ้น", color: "bg-gray-500", icon: CheckCircle2 },
