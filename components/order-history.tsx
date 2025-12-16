@@ -31,6 +31,44 @@ export function OrderHistory() {
 
   useEffect(() => {
     loadOrders()
+
+    const orderIds = getOrderHistory()
+    if (orderIds.length === 0) return
+
+    const supabase = createBrowserClient()
+
+    const channel = supabase
+      .channel("order-history-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `id=in.(${orderIds.join(",")})`,
+        },
+        (payload) => {
+          setOrders((prevOrders) =>
+            prevOrders.map((order) => (order.id === payload.new.id ? { ...order, status: payload.new.status } : order)),
+          )
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "order_items",
+        },
+        () => {
+          loadOrders()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const loadOrders = async () => {
