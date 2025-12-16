@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { addToCart } from "@/lib/cart-storage"
 import { useToast } from "@/hooks/use-toast"
+import { useEffect, useState } from "react"
+import { createBrowserClient } from "@/lib/supabase/client"
 
 type MenuItem = {
   id: string
@@ -20,8 +22,48 @@ type MenuItem = {
 
 export function MenuGrid({ items }: { items: MenuItem[] }) {
   const { toast } = useToast()
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(items)
+
+  useEffect(() => {
+    setMenuItems(items)
+
+    const supabase = createBrowserClient()
+    const channel = supabase
+      .channel("menu-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "menu_items",
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setMenuItems((prev) => [payload.new as MenuItem, ...prev])
+          } else if (payload.eventType === "UPDATE") {
+            setMenuItems((prev) => prev.map((item) => (item.id === payload.new.id ? (payload.new as MenuItem) : item)))
+          } else if (payload.eventType === "DELETE") {
+            setMenuItems((prev) => prev.filter((item) => item.id !== payload.old.id))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [items])
 
   const handleAddToCart = (item: MenuItem) => {
+    if (!item.is_available) {
+      toast({
+        title: "เมนูไม่พร้อมจำหน่าย",
+        description: `${item.name} ไม่พร้อมจำหน่ายในขณะนี้`,
+        variant: "destructive",
+      })
+      return
+    }
+
     addToCart({
       id: item.id,
       name: item.name,
@@ -30,7 +72,6 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
       image_url: item.image_url,
     })
 
-    // Dispatch custom event to update cart count
     window.dispatchEvent(new Event("cart-updated"))
 
     toast({
@@ -39,7 +80,9 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
     })
   }
 
-  if (!items || items.length === 0) {
+  const availableItems = menuItems.filter((item) => item.is_available)
+
+  if (!availableItems || availableItems.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground text-lg">ยังไม่มีเมนูในขณะนี้</p>
@@ -49,7 +92,7 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {items.map((item) => (
+      {availableItems.map((item) => (
         <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border-red-100">
           <CardContent className="p-0">
             {item.image_url && (

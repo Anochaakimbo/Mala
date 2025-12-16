@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, Edit2, X, Check, Upload, ImageIcon } from "lucide-react"
+import { Plus, Trash2, Edit2, X, Check, Upload, ImageIcon, Power } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
@@ -218,6 +218,18 @@ export function AdminPanel({ items }: { items: MenuItem[] }) {
     setImagePreview(null)
   }
 
+  const toggleAvailability = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from("menu_items").update({ is_available: !currentStatus }).eq("id", id)
+
+    if (error) {
+      alert("เกิดข้อผิดพลาด: " + error.message)
+      return
+    }
+
+    setMenuItems(menuItems.map((item) => (item.id === id ? { ...item, is_available: !currentStatus } : item)))
+    router.refresh()
+  }
+
   return (
     <div className="space-y-6">
       {/* Add New Item Card */}
@@ -402,9 +414,22 @@ export function AdminPanel({ items }: { items: MenuItem[] }) {
                     {item.description && <p className="text-sm text-muted-foreground mt-1">{item.description}</p>}
                     <div className="flex items-center gap-4 mt-2 text-sm">
                       <span className="font-bold text-red-600">฿{item.price.toFixed(0)}</span>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${item.is_available ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                      >
+                        {item.is_available ? "พร้อมจำหน่าย" : "ปิดจำหน่าย"}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      onClick={() => toggleAvailability(item.id, item.is_available)}
+                      variant={item.is_available ? "default" : "outline"}
+                      size="icon"
+                      className={item.is_available ? "bg-green-600 hover:bg-green-700" : ""}
+                    >
+                      <Power className="h-4 w-4" />
+                    </Button>
                     <Button onClick={() => startEdit(item)} variant="outline" size="icon">
                       <Edit2 className="h-4 w-4" />
                     </Button>
