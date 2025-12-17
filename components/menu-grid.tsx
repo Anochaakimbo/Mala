@@ -3,7 +3,8 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Plus, Search } from "lucide-react"
 import { addToCart } from "@/lib/cart-storage"
 import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
@@ -23,6 +24,7 @@ type MenuItem = {
 export function MenuGrid({ items }: { items: MenuItem[] }) {
   const { toast } = useToast()
   const [menuItems, setMenuItems] = useState<MenuItem[]>(items)
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     setMenuItems(items)
@@ -79,54 +81,83 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
     })
   }
 
-  const availableItems = menuItems.filter((item) => item.is_available)
-
-  if (!availableItems || availableItems.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground text-lg">ยังไม่มีเมนูในขณะนี้</p>
-      </div>
-    )
-  }
+  const availableItems = menuItems
+    .filter((item) => item.is_available)
+    .filter((item) => {
+      if (!searchQuery) return true
+      const query = searchQuery.toLowerCase()
+      return (
+        item.name.toLowerCase().includes(query) ||
+        item.name_en?.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query) ||
+        item.price.toString().includes(query)
+      )
+    })
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {availableItems.map((item) => (
-        <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border-red-100">
-          <CardContent className="p-0">
-            {item.image_url && (
-              <div className="relative w-full h-48 overflow-hidden">
-                <img
-                  src={item.image_url || "/placeholder.svg"}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-            <div className="p-4">
-              <div className="flex justify-between items-start gap-3">
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg text-red-900">{item.name}</h3>
-                  {item.name_en && <p className="text-sm text-muted-foreground">{item.name_en}</p>}
-                  {item.description && <p className="text-sm text-muted-foreground mt-1">{item.description}</p>}
+    <div className="space-y-6">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="ค้นหาเมนู..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 bg-white border-red-200 focus:border-red-400"
+        />
+      </div>
+
+      {availableItems.length === 0 && searchQuery ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-lg">ไม่พบเมนูที่ค้นหา</p>
+        </div>
+      ) : !availableItems || availableItems.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground text-lg">ยังไม่มีเมนูในขณะนี้</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {availableItems.map((item) => (
+            <Card
+              key={item.id}
+              className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border-red-100"
+            >
+              <CardContent className="p-0">
+                {item.image_url && (
+                  <div className="relative w-full h-48 overflow-hidden">
+                    <img
+                      src={item.image_url || "/placeholder.svg"}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="p-4">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-red-900">{item.name}</h3>
+                      {item.name_en && <p className="text-sm text-muted-foreground">{item.name_en}</p>}
+                      {item.description && <p className="text-sm text-muted-foreground mt-1">{item.description}</p>}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <Badge className="bg-red-600 hover:bg-red-700 text-lg font-bold px-3 py-1">
+                        ฿{item.price.toFixed(0)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleAddToCart(item)}
+                    className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    เพิ่มลงตะกร้า
+                  </Button>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <Badge className="bg-red-600 hover:bg-red-700 text-lg font-bold px-3 py-1">
-                    ฿{item.price.toFixed(0)}
-                  </Badge>
-                </div>
-              </div>
-              <Button
-                onClick={() => handleAddToCart(item)}
-                className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                เพิ่มลงตะกร้า
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
