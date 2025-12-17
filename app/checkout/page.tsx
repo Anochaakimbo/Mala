@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, Upload, Loader2 } from "lucide-react"
+import { ArrowLeft, Upload, Loader2, Copy, Check } from "lucide-react"
 import { getCart, getCartTotalWithDiscount, clearCart, getSessionId, saveOrderToHistory } from "@/lib/cart-storage"
 import { useToast } from "@/hooks/use-toast"
 
@@ -20,6 +20,7 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [slipFile, setSlipFile] = useState<File | null>(null)
   const [slipPreview, setSlipPreview] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -154,6 +155,16 @@ export default function CheckoutPage() {
     }
   }
 
+  const copyPromptPayNumber = () => {
+    navigator.clipboard.writeText("0653320130")
+    setCopied(true)
+    toast({
+      title: "คัดลอกแล้ว!",
+      description: "คัดลอกหมายเลขพร้อมเพย์แล้ว",
+    })
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   const { subtotal, discount, total, stickCount } = getCartTotalWithDiscount()
 
   return (
@@ -240,7 +251,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="อื่นๆ" id="location-other" />
                       <Label htmlFor="location-other" className="font-normal cursor-pointer">
-                        อื่นๆ (ลูกค้าสามารถให้ไปส่งหอบริเวณใกล้เคียงได้)
+                        อื่นๆ / รับที่ร้าน (ลูกค้าสามารถให้ไปส่งหอบริเวณใกล้เคียงได้)
                       </Label>
                     </div>
                   </RadioGroup>
@@ -310,34 +321,71 @@ export default function CheckoutPage() {
               </div>
 
               {paymentMethod === "slip" && (
-                <div>
-                  <Label htmlFor="slip-upload">แนบสลิปการโอนเงิน *</Label>
-                  <div className="mt-2">
-                    <Input
-                      id="slip-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleSlipChange}
-                      className="hidden"
-                    />
-                    <Label
-                      htmlFor="slip-upload"
-                      className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-red-600 transition-colors"
-                    >
-                      {slipPreview ? (
-                        <img
-                          src={slipPreview || "/placeholder.svg"}
-                          alt="Payment slip preview"
-                          className="h-full object-contain"
-                        />
-                      ) : (
-                        <div className="text-center">
-                          <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                          <p className="text-sm text-gray-600">คลิกเพื่ออัปโหลดสลิป</p>
-                          <p className="text-xs text-red-600 mt-1">*จำเป็นต้องแนบหลักฐานการโอนเงิน</p>
+                <div className="space-y-4">
+                  <Card className="border-2 border-blue-200 bg-blue-50">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg text-blue-900">ข้อมูลการโอนเงิน</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* PromptPay Number */}
+                      <div>
+                        <Label className="text-sm text-gray-700 mb-2 block">หมายเลขพร้อมเพย์</Label>
+                        <div className="flex gap-2">
+                          <Input value="0653320130" readOnly className="bg-white font-mono text-lg" />
+                          <Button
+                            type="button"
+                            onClick={copyPromptPayNumber}
+                            variant="outline"
+                            className="px-4 bg-transparent"
+                          >
+                            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </Button>
                         </div>
-                      )}
-                    </Label>
+                      </div>
+
+                      {/* QR Code */}
+                      <div>
+                        <Label className="text-sm text-gray-700 mb-2 block">QR Code พร้อมเพย์</Label>
+                        <div className="flex justify-center bg-white p-4 rounded-lg">
+                          <img
+                            src="/images/promptpay-qr.jpg"
+                            alt="PromptPay QR Code"
+                            className="w-full max-w-sm rounded-lg shadow-md"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div>
+                    <Label htmlFor="slip-upload">แนบสลิปการโอนเงิน *</Label>
+                    <div className="mt-2">
+                      <Input
+                        id="slip-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleSlipChange}
+                        className="hidden"
+                      />
+                      <Label
+                        htmlFor="slip-upload"
+                        className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-red-600 transition-colors"
+                      >
+                        {slipPreview ? (
+                          <img
+                            src={slipPreview || "/placeholder.svg"}
+                            alt="Payment slip preview"
+                            className="h-full object-contain"
+                          />
+                        ) : (
+                          <div className="text-center">
+                            <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                            <p className="text-sm text-gray-600">คลิกเพื่ออัปโหลดสลิป</p>
+                            <p className="text-xs text-red-600 mt-1">*จำเป็นต้องแนบหลักฐานการโอนเงิน</p>
+                          </div>
+                        )}
+                      </Label>
+                    </div>
                   </div>
                 </div>
               )}
