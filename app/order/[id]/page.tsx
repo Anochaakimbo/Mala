@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { supabase } from "@/lib/supabase/client"
-import { Clock, CheckCircle2, Loader2, Home, AlertTriangle } from "lucide-react"
+import { Clock, CheckCircle2, Loader2, Home, AlertTriangle, Phone } from "lucide-react"
 
 type Order = {
   id: string
@@ -156,6 +156,15 @@ export default function OrderStatusPage() {
           <Home className="h-4 w-4 mr-2" />
           กลับไปหน้าหลัก
         </Button>
+
+        {order.status === "completed" && (
+          <Alert className="mb-4 border-green-600 bg-green-50">
+            <Phone className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              <p className="font-semibold">ทางร้านจะทำการโทรหาหากถึงคิวส่งของลูกค้า กรุณารอรับสายด้วยครับ</p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {order.is_modified && (
           <Alert className="mb-4 border-orange-500 bg-orange-50">

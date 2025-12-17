@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ClipboardList, Clock, CheckCircle, XCircle, ChefHat, Flame, AlertTriangle } from "lucide-react"
+import { ClipboardList, Clock, CheckCircle, XCircle, ChefHat, Flame, AlertTriangle, Phone } from "lucide-react"
 import { getOrderHistory } from "@/lib/cart-storage"
 import { supabase } from "@/lib/supabase/client"
 
@@ -207,6 +207,15 @@ export function OrderHistory() {
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 มีการแก้ไข
               </Badge>
+            )}
+
+            {order.status === "completed" && (
+              <div className="mb-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex items-start gap-2 text-green-800">
+                  <Phone className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm">ทางร้านจะทำการโทรหาหากถึงคิวส่งของลูกค้า กรุณารอรับสายด้วยครับ</p>
+                </div>
+              </div>
             )}
 
             <div className="flex items-start justify-between mb-3">
