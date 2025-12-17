@@ -51,9 +51,9 @@ export default function OrderStatusPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      const supabase = createBrowserClient()
+    const supabase = createBrowserClient()
 
+    const fetchOrder = async () => {
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select("*")
@@ -82,7 +82,6 @@ export default function OrderStatusPage() {
 
     fetchOrder()
 
-    const supabase = createBrowserClient()
     const channel = supabase
       .channel(`order-${params.id}`)
       .on(

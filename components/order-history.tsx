@@ -32,12 +32,60 @@ export function OrderHistory() {
   const router = useRouter()
 
   useEffect(() => {
+    const supabase = createBrowserClient()
+
+    const loadOrders = async () => {
+      setLoading(true)
+      try {
+        const orderIds = getOrderHistory()
+        if (orderIds.length === 0) {
+          setLoading(false)
+          return
+        }
+
+        const { data: ordersData, error: ordersError } = await supabase
+          .from("orders")
+          .select(
+            "id, created_at, customer_name, total_amount, original_total_amount, is_modified, status, spice_level",
+          )
+          .in("id", orderIds)
+          .order("created_at", { ascending: false })
+
+        if (ordersError) throw ordersError
+
+        if (!ordersData || ordersData.length === 0) {
+          setOrders([])
+          setLoading(false)
+          return
+        }
+
+        const { data: itemsData, error: itemsError } = await supabase
+          .from("order_items")
+          .select("order_id, menu_item_name, quantity, menu_item_price")
+          .in(
+            "order_id",
+            ordersData.map((o) => o.id),
+          )
+
+        if (itemsError) throw itemsError
+
+        const ordersWithItems = ordersData.map((order) => ({
+          ...order,
+          order_items: itemsData?.filter((item) => item.order_id === order.id) || [],
+        }))
+
+        setOrders(ordersWithItems)
+      } catch (error) {
+        console.error("Error loading order history:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadOrders()
 
     const orderIds = getOrderHistory()
     if (orderIds.length === 0) return
-
-    const supabase = createBrowserClient()
 
     const channel = supabase
       .channel("order-history-updates")
@@ -70,56 +118,6 @@ export function OrderHistory() {
       supabase.removeChannel(channel)
     }
   }, [])
-
-  const loadOrders = async () => {
-    setLoading(true)
-    try {
-      const orderIds = getOrderHistory()
-      if (orderIds.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      const supabase = createBrowserClient()
-
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("id, created_at, customer_name, total_amount, original_total_amount, is_modified, status, spice_level")
-        .in("id", orderIds)
-        .order("created_at", { ascending: false })
-
-      if (ordersError) throw ordersError
-
-      if (!ordersData || ordersData.length === 0) {
-        setOrders([])
-        setLoading(false)
-        return
-      }
-
-      // Fetch order items for all orders
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("order_items")
-        .select("order_id, menu_item_name, quantity, menu_item_price")
-        .in(
-          "order_id",
-          ordersData.map((o) => o.id),
-        )
-
-      if (itemsError) throw itemsError
-
-      // Combine orders with their items
-      const ordersWithItems = ordersData.map((order) => ({
-        ...order,
-        order_items: itemsData?.filter((item) => item.order_id === order.id) || [],
-      }))
-
-      setOrders(ordersWithItems)
-    } catch (error) {
-      console.error("Error loading order history:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<
