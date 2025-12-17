@@ -25,6 +25,7 @@ export default function CheckoutPage() {
   const { toast } = useToast()
 
   const [deliveryLocationOption, setDeliveryLocationOption] = useState("ร้าน HashTag(#)")
+  const [paymentMethod, setPaymentMethod] = useState<"slip" | "cash">("slip")
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -66,7 +67,7 @@ export default function CheckoutPage() {
       return
     }
 
-    if (!slipFile) {
+    if (paymentMethod === "slip" && !slipFile) {
       toast({
         title: "กรุณาแนบสลิปโอนเงิน",
         description: "จำเป็นต้องแนบหลักฐานการโอนเงิน",
@@ -83,7 +84,7 @@ export default function CheckoutPage() {
       const { subtotal, discount, total } = getCartTotalWithDiscount()
 
       let paymentSlipUrl = null
-      if (slipFile) {
+      if (paymentMethod === "slip" && slipFile) {
         const fileName = `${sessionId}_${Date.now()}_${slipFile.name}`
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("payment-slips")
@@ -104,7 +105,7 @@ export default function CheckoutPage() {
           customer_phone: formData.customerPhone,
           delivery_address: deliveryAddress,
           spice_level: formData.spiceLevel,
-          payment_method: "slip",
+          payment_method: paymentMethod,
           payment_slip_url: paymentSlipUrl,
           subtotal_amount: subtotal,
           discount_amount: discount,
@@ -117,7 +118,6 @@ export default function CheckoutPage() {
 
       if (orderError) throw orderError
 
-      // Create order items
       const orderItems = cart.map((item) => ({
         order_id: orderData.id,
         menu_item_id: item.id,
@@ -133,7 +133,6 @@ export default function CheckoutPage() {
 
       saveOrderToHistory(orderData.id)
 
-      // Clear cart
       clearCart()
       window.dispatchEvent(new Event("cart-updated"))
 
@@ -171,7 +170,6 @@ export default function CheckoutPage() {
               <CardTitle className="text-2xl text-red-900">ข้อมูลการสั่งซื้อ</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Customer Info */}
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="customerName">ชื่อ*</Label>
@@ -290,36 +288,59 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <Label htmlFor="slip-upload">แนบสลิปการโอนเงิน *</Label>
-                <div className="mt-2">
-                  <Input
-                    id="slip-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleSlipChange}
-                    required
-                    className="hidden"
-                  />
-                  <Label
-                    htmlFor="slip-upload"
-                    className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-red-600 transition-colors"
-                  >
-                    {slipPreview ? (
-                      <img
-                        src={slipPreview || "/placeholder.svg"}
-                        alt="Payment slip preview"
-                        className="h-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-center">
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                        <p className="text-sm text-gray-600">คลิกเพื่ออัปโหลดสลิป</p>
-                        <p className="text-xs text-red-600 mt-1">*จำเป็นต้องแนบหลักฐานการโอนเงิน</p>
-                      </div>
-                    )}
-                  </Label>
-                </div>
+                <Label>วิธีการชำระเงิน *</Label>
+                <RadioGroup
+                  value={paymentMethod}
+                  onValueChange={(value: any) => setPaymentMethod(value)}
+                  className="mt-2 space-y-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="slip" id="payment-slip" />
+                    <Label htmlFor="payment-slip" className="font-normal cursor-pointer">
+                      แนบสลิปโอนเงิน
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="cash" id="payment-cash" />
+                    <Label htmlFor="payment-cash" className="font-normal cursor-pointer">
+                      ชำระเงินหลังได้รับออเดอร์
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
+
+              {paymentMethod === "slip" && (
+                <div>
+                  <Label htmlFor="slip-upload">แนบสลิปการโอนเงิน *</Label>
+                  <div className="mt-2">
+                    <Input
+                      id="slip-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSlipChange}
+                      className="hidden"
+                    />
+                    <Label
+                      htmlFor="slip-upload"
+                      className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-red-600 transition-colors"
+                    >
+                      {slipPreview ? (
+                        <img
+                          src={slipPreview || "/placeholder.svg"}
+                          alt="Payment slip preview"
+                          className="h-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                          <p className="text-sm text-gray-600">คลิกเพื่ออัปโหลดสลิป</p>
+                          <p className="text-xs text-red-600 mt-1">*จำเป็นต้องแนบหลักฐานการโอนเงิน</p>
+                        </div>
+                      )}
+                    </Label>
+                  </div>
+                </div>
+              )}
 
               <div className="border-t pt-4">
                 <h3 className="font-bold text-lg mb-2">สรุปรายการสั่งซื้อ</h3>
@@ -353,7 +374,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <Button
                 type="submit"
                 disabled={loading}
