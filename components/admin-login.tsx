@@ -1,14 +1,13 @@
 "use client"
 
 import type React from "react"
-
+import { supabase } from "@/lib/supabase/client"
 import { useState, useEffect } from "react"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AdminPanel } from "@/components/admin-panel"
-import { createClient } from "@/lib/supabase/client"
 
 const ADMIN_PASSWORD = "11456"
 
@@ -32,8 +31,7 @@ export function AdminLogin() {
 
   const fetchMenuItems = async () => {
     setIsLoadingMenu(true)
-    const supabase = createClient()
-    const { data } = await supabase.from("menu_items").select("*").order("created_at", { ascending: false })
+    const { data } = await supabase!.from("menu_items").select("*").order("created_at", { ascending: false })
     setMenuItems(data || [])
     setIsLoadingMenu(false)
     setIsLoading(false)

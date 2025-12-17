@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ClipboardList, Clock, CheckCircle, XCircle, ChefHat, Flame, AlertTriangle } from "lucide-react"
 import { getOrderHistory } from "@/lib/cart-storage"
-import { createBrowserClient } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client"
 
 type OrderItem = {
   menu_item_name: string
@@ -32,8 +32,6 @@ export function OrderHistory() {
   const router = useRouter()
 
   useEffect(() => {
-    const supabase = createBrowserClient()
-
     const loadOrders = async () => {
       setLoading(true)
       try {
@@ -43,7 +41,7 @@ export function OrderHistory() {
           return
         }
 
-        const { data: ordersData, error: ordersError } = await supabase
+        const { data: ordersData, error: ordersError } = await supabase!
           .from("orders")
           .select(
             "id, created_at, customer_name, total_amount, original_total_amount, is_modified, status, spice_level",
@@ -59,7 +57,7 @@ export function OrderHistory() {
           return
         }
 
-        const { data: itemsData, error: itemsError } = await supabase
+        const { data: itemsData, error: itemsError } = await supabase!
           .from("order_items")
           .select("order_id, menu_item_name, quantity, menu_item_price")
           .in(
@@ -87,7 +85,7 @@ export function OrderHistory() {
     const orderIds = getOrderHistory()
     if (orderIds.length === 0) return
 
-    const channel = supabase
+    const channel = supabase!
       .channel("order-history-updates")
       .on(
         "postgres_changes",
@@ -115,7 +113,7 @@ export function OrderHistory() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase!.removeChannel(channel)
     }
   }, [])
 

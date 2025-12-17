@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Trash2, Edit2, X, Check, Upload, ImageIcon, Power } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
 type MenuItem = {
@@ -37,7 +36,6 @@ export function AdminPanel({ items }: { items: MenuItem[] }) {
     category: "ของเสียบ",
   })
   const router = useRouter()
-  const supabase = createClient()
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

@@ -1,24 +1,35 @@
 import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ssr"
 
 declare global {
-  var __supabase_client: ReturnType<typeof createSupabaseBrowserClient> | undefined
+  var __supabase_client__: ReturnType<typeof createSupabaseBrowserClient> | undefined
 }
 
-export function createBrowserClient() {
-  if (globalThis.__supabase_client) {
-    return globalThis.__supabase_client
+function getSupabaseClient() {
+  if (typeof window === "undefined") {
+    throw new Error("Supabase client can only be used in the browser")
   }
 
-  const client = createSupabaseBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
+  if (!globalThis.__supabase_client__) {
+    globalThis.__supabase_client__ = createSupabaseBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+  }
 
-  globalThis.__supabase_client = client
+  return globalThis.__supabase_client__
+}
 
-  return client
+export const supabase = new Proxy({} as ReturnType<typeof createSupabaseBrowserClient>, {
+  get(_target, prop) {
+    const client = getSupabaseClient()
+    return client[prop as keyof typeof client]
+  },
+})
+
+export function createBrowserClient() {
+  return getSupabaseClient()
 }
 
 export function createClient() {
-  return createBrowserClient()
+  return getSupabaseClient()
 }

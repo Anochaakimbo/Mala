@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { supabase } from "@/lib/supabase/client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ArrowLeft, Upload, Loader2 } from "lucide-react"
 import { getCart, getCartTotalWithDiscount, clearCart, getSessionId, saveOrderToHistory } from "@/lib/cart-storage"
-import { createBrowserClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 
 export default function CheckoutPage() {
@@ -79,7 +78,6 @@ export default function CheckoutPage() {
     setLoading(true)
 
     try {
-      const supabase = createBrowserClient()
       const sessionId = getSessionId()
       const { subtotal, discount, total } = getCartTotalWithDiscount()
 

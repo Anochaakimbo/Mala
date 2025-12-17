@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createBrowserClient } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client"
 import { Clock, CheckCircle2, Loader2, Home, AlertTriangle } from "lucide-react"
 
 type Order = {
@@ -51,8 +51,6 @@ export default function OrderStatusPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createBrowserClient()
-
     const fetchOrder = async () => {
       const { data: orderData, error: orderError } = await supabase
         .from("orders")

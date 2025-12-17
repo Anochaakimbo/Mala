@@ -7,7 +7,7 @@ import { Plus } from "lucide-react"
 import { addToCart } from "@/lib/cart-storage"
 import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
-import { createBrowserClient } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client"
 
 type MenuItem = {
   id: string
@@ -27,8 +27,7 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
   useEffect(() => {
     setMenuItems(items)
 
-    const supabase = createBrowserClient()
-    const channel = supabase
+    const channel = supabase!
       .channel("menu-changes")
       .on(
         "postgres_changes",
@@ -50,7 +49,7 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase!.removeChannel(channel)
     }
   }, [items])
 
