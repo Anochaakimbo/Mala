@@ -91,6 +91,7 @@ export default function OrderStatusPage() {
           filter: `id=eq.${params.id}`,
         },
         (payload) => {
+          console.log("[v0] Order updated:", payload.new)
           setOrder(payload.new as Order)
         },
       )
@@ -100,15 +101,31 @@ export default function OrderStatusPage() {
           event: "*",
           schema: "public",
           table: "order_items",
-          filter: `order_id=eq.${params.id}`,
         },
-        async () => {
-          const { data: updatedOrder } = await supabase.from("orders").select("*").eq("id", params.id).single()
+        async (payload) => {
+          console.log("[v0] Order items changed:", payload.eventType, payload)
 
-          const { data: updatedItems } = await supabase.from("order_items").select("*").eq("order_id", params.id)
+          // For INSERT/UPDATE, we can check directly
+          if (payload.eventType === "DELETE") {
+            // Always refetch on DELETE since we can't check order_id from payload
+            const { data: updatedOrder } = await supabase.from("orders").select("*").eq("id", params.id).single()
+            const { data: updatedItems } = await supabase.from("order_items").select("*").eq("order_id", params.id)
 
-          if (updatedOrder) setOrder(updatedOrder)
-          if (updatedItems) setOrderItems(updatedItems)
+            if (updatedOrder) setOrder(updatedOrder)
+            if (updatedItems) setOrderItems(updatedItems)
+          } else {
+            // For INSERT/UPDATE, check if it's our order first
+            const isOurOrder = payload.new?.order_id === params.id
+
+            if (isOurOrder) {
+              // Refetch both order and items to ensure consistency
+              const { data: updatedOrder } = await supabase.from("orders").select("*").eq("id", params.id).single()
+              const { data: updatedItems } = await supabase.from("order_items").select("*").eq("order_id", params.id)
+
+              if (updatedOrder) setOrder(updatedOrder)
+              if (updatedItems) setOrderItems(updatedItems)
+            }
+          }
         },
       )
       .subscribe()
