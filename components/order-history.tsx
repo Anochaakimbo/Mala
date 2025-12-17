@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ClipboardList, Clock, CheckCircle, XCircle, ChefHat, Flame } from "lucide-react"
+import { ClipboardList, Clock, CheckCircle, XCircle, ChefHat, Flame, AlertTriangle } from "lucide-react"
 import { getOrderHistory } from "@/lib/cart-storage"
 import { createBrowserClient } from "@/lib/supabase/client"
 
@@ -19,6 +19,8 @@ type Order = {
   created_at: string
   customer_name: string
   total_amount: number
+  original_total_amount: number | null
+  is_modified: boolean
   status: string
   spice_level: string
   order_items: OrderItem[]
@@ -42,21 +44,19 @@ export function OrderHistory() {
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "orders",
           filter: `id=in.(${orderIds.join(",")})`,
         },
-        (payload) => {
-          setOrders((prevOrders) =>
-            prevOrders.map((order) => (order.id === payload.new.id ? { ...order, status: payload.new.status } : order)),
-          )
+        () => {
+          loadOrders()
         },
       )
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "order_items",
         },
@@ -81,27 +81,39 @@ export function OrderHistory() {
       }
 
       const supabase = createBrowserClient()
-      const { data, error } = await supabase
+
+      const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
-        .select(`
-          id,
-          created_at,
-          customer_name,
-          total_amount,
-          status,
-          spice_level,
-          order_items (
-            menu_item_name,
-            quantity,
-            menu_item_price
-          )
-        `)
+        .select("id, created_at, customer_name, total_amount, original_total_amount, is_modified, status, spice_level")
         .in("id", orderIds)
         .order("created_at", { ascending: false })
 
-      if (error) throw error
+      if (ordersError) throw ordersError
 
-      setOrders(data || [])
+      if (!ordersData || ordersData.length === 0) {
+        setOrders([])
+        setLoading(false)
+        return
+      }
+
+      // Fetch order items for all orders
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("order_items")
+        .select("order_id, menu_item_name, quantity, menu_item_price")
+        .in(
+          "order_id",
+          ordersData.map((o) => o.id),
+        )
+
+      if (itemsError) throw itemsError
+
+      // Combine orders with their items
+      const ordersWithItems = ordersData.map((order) => ({
+        ...order,
+        order_items: itemsData?.filter((item) => item.order_id === order.id) || [],
+      }))
+
+      setOrders(ordersWithItems)
     } catch (error) {
       console.error("Error loading order history:", error)
     } finally {
@@ -194,6 +206,13 @@ export function OrderHistory() {
             className="border rounded-lg p-4 hover:bg-red-50 transition-colors cursor-pointer"
             onClick={() => router.push(`/order/${order.id}`)}
           >
+            {order.is_modified && (
+              <Badge variant="outline" className="mb-2 border-orange-500 text-orange-700">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                มีการแก้ไข
+              </Badge>
+            )}
+
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="font-medium">{order.customer_name}</p>
@@ -215,7 +234,12 @@ export function OrderHistory() {
 
             <div className="flex items-center justify-between pt-2 border-t">
               <div className="flex items-center gap-3">{getSpiceLevelDisplay(order.spice_level)}</div>
-              <span className="font-bold text-red-600">฿{order.total_amount.toFixed(0)}</span>
+              <div className="text-right">
+                {order.is_modified && order.original_total_amount && (
+                  <p className="text-xs text-gray-500 line-through">฿{order.original_total_amount.toFixed(0)}</p>
+                )}
+                <span className="font-bold text-red-600">฿{order.total_amount.toFixed(0)}</span>
+              </div>
             </div>
           </div>
         ))}

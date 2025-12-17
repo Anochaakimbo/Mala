@@ -103,8 +103,8 @@ export default function CheckoutPage() {
         customer_phone: formData.customerPhone,
         delivery_address: deliveryAddress,
         spice_level: formData.spiceLevel,
-        payment_method: paymentMethod,
-        payment_slip_url: paymentSlipUrl,
+        payment_method: paymentMethod, // This is already 'slip' or 'cash' from state
+        payment_slip_url: paymentSlipUrl || "", // Send empty string instead of null
         subtotal_amount: subtotal,
         discount_amount: discount,
         total_amount: total,
