@@ -1,13 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, Edit2, X, Check, Upload, ImageIcon, Power } from "lucide-react"
+import { Plus, Trash2, Edit2, X, Check, Upload, ImageIcon, Power, Search } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
@@ -24,6 +24,7 @@ type MenuItem = {
 
 export function AdminPanel({ items }: { items: MenuItem[] }) {
   const [menuItems, setMenuItems] = useState(items)
+  const [searchQuery, setSearchQuery] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -36,6 +37,20 @@ export function AdminPanel({ items }: { items: MenuItem[] }) {
     category: "ของเสียบ",
   })
   const router = useRouter()
+
+  const filteredMenuItems = useMemo(() => {
+    if (!searchQuery.trim()) return menuItems
+
+    const query = searchQuery.toLowerCase()
+    return menuItems.filter((item) => {
+      return (
+        item.name.toLowerCase().includes(query) ||
+        (item.name_en && item.name_en.toLowerCase().includes(query)) ||
+        (item.description && item.description.toLowerCase().includes(query)) ||
+        item.price.toString().includes(query)
+      )
+    })
+  }, [menuItems, searchQuery])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -314,8 +329,28 @@ export function AdminPanel({ items }: { items: MenuItem[] }) {
 
       {/* Menu Items List */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold">เมนูทั้งหมด ({menuItems.length})</h2>
-        {menuItems.map((item) => (
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-bold">เมนูทั้งหมด ({filteredMenuItems.length})</h2>
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ค้นหาเมนู..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {filteredMenuItems.length === 0 && searchQuery && (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground">
+              <p>ไม่พบเมนูที่ตรงกับคำค้นหา "{searchQuery}"</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {filteredMenuItems.map((item) => (
           <Card key={item.id}>
             <CardContent className="p-4">
               {editingId === item.id ? (
