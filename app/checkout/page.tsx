@@ -104,7 +104,7 @@ export default function CheckoutPage() {
         delivery_address: deliveryAddress,
         spice_level: formData.spiceLevel,
         payment_method: paymentMethod,
-        payment_slip_url: paymentSlipUrl || null, // Send null if empty string
+        payment_slip_url: paymentSlipUrl,
         subtotal_amount: subtotal,
         discount_amount: discount,
         total_amount: total,
