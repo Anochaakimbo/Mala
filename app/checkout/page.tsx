@@ -83,7 +83,7 @@ export default function CheckoutPage() {
       const sessionId = getSessionId()
       const { subtotal, discount, total } = getCartTotalWithDiscount()
 
-      let paymentSlipUrl = null
+      let paymentSlipUrl = ""
       if (paymentMethod === "slip" && slipFile) {
         const fileName = `${sessionId}_${Date.now()}_${slipFile.name}`
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -97,29 +97,31 @@ export default function CheckoutPage() {
         paymentSlipUrl = urlData.publicUrl
       }
 
-      const { data: orderData, error: orderError } = await supabase
+      const orderData = {
+        session_id: sessionId,
+        customer_name: formData.customerName,
+        customer_phone: formData.customerPhone,
+        delivery_address: deliveryAddress,
+        spice_level: formData.spiceLevel,
+        payment_method: paymentMethod,
+        payment_slip_url: paymentSlipUrl || null, // Send null if empty string
+        subtotal_amount: subtotal,
+        discount_amount: discount,
+        total_amount: total,
+        notes: formData.notes,
+        status: "pending",
+      }
+
+      const { data: createdOrder, error: orderError } = await supabase
         .from("orders")
-        .insert({
-          session_id: sessionId,
-          customer_name: formData.customerName,
-          customer_phone: formData.customerPhone,
-          delivery_address: deliveryAddress,
-          spice_level: formData.spiceLevel,
-          payment_method: paymentMethod,
-          payment_slip_url: paymentSlipUrl,
-          subtotal_amount: subtotal,
-          discount_amount: discount,
-          total_amount: total,
-          notes: formData.notes,
-          status: "pending",
-        })
+        .insert(orderData)
         .select()
         .single()
 
       if (orderError) throw orderError
 
       const orderItems = cart.map((item) => ({
-        order_id: orderData.id,
+        order_id: createdOrder.id,
         menu_item_id: item.id,
         menu_item_name: item.name,
         menu_item_price: item.price,
@@ -131,7 +133,7 @@ export default function CheckoutPage() {
 
       if (itemsError) throw itemsError
 
-      saveOrderToHistory(orderData.id)
+      saveOrderToHistory(createdOrder.id)
 
       clearCart()
       window.dispatchEvent(new Event("cart-updated"))
@@ -141,7 +143,7 @@ export default function CheckoutPage() {
         description: "คำสั่งซื้อของคุณได้รับการบันทึกแล้ว",
       })
 
-      router.push(`/order/${orderData.id}`)
+      router.push(`/order/${createdOrder.id}`)
     } catch (error) {
       console.error("Error creating order:", error)
       toast({
