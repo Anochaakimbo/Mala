@@ -96,15 +96,17 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="ค้นหาเมนู..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 bg-white border-red-200 focus:border-red-400"
-        />
+      <div className="sticky top-[120px] z-[9] bg-gradient-to-b from-red-50 to-orange-50 pb-4 -mt-4 pt-4 shadow-sm">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="ค้นหาเมนู..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-white border-red-200 focus:border-red-400 shadow-sm"
+          />
+        </div>
       </div>
 
       {availableItems.length === 0 && searchQuery ? (
