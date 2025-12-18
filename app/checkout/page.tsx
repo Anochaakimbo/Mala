@@ -11,8 +11,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, Upload, Loader2, Copy, Check } from "lucide-react"
-import { getCart, getCartTotalWithDiscount, clearCart, getSessionId, saveOrderToHistory } from "@/lib/cart-storage"
+import { ArrowLeft, Upload, Loader2, Copy, Check, ShieldAlert } from "lucide-react"
+import {
+  getCart,
+  getCartTotalWithDiscount,
+  clearCart,
+  getSessionId,
+  saveOrderToHistory,
+  checkRateLimit,
+  recordOrderAttempt,
+} from "@/lib/cart-storage"
 import { useToast } from "@/hooks/use-toast"
 
 export default function CheckoutPage() {
@@ -27,6 +35,9 @@ export default function CheckoutPage() {
   const [deliveryLocationOption, setDeliveryLocationOption] = useState("ร้าน HashTag(#)")
   const [paymentMethod, setPaymentMethod] = useState<"slip" | "cash">("slip")
 
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [blockMessage, setBlockMessage] = useState("")
+
   const [formData, setFormData] = useState({
     customerName: "",
     customerPhone: "",
@@ -38,6 +49,11 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (cart.length === 0) {
       router.push("/")
+    }
+    const rateLimitCheck = checkRateLimit()
+    if (!rateLimitCheck.allowed) {
+      setIsBlocked(true)
+      setBlockMessage(rateLimitCheck.message || "")
     }
   }, [cart, router])
 
@@ -55,6 +71,28 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const rateLimitCheck = checkRateLimit()
+    if (!rateLimitCheck.allowed) {
+      toast({
+        title: "ไม่สามารถสั่งอาหารได้",
+        description: rateLimitCheck.message,
+        variant: "destructive",
+      })
+      setIsBlocked(true)
+      setBlockMessage(rateLimitCheck.message || "")
+      return
+    }
+
+    const phoneRegex = /^[0-9]{10}$/
+    if (!phoneRegex.test(formData.customerPhone)) {
+      toast({
+        title: "เบอร์โทรศัพท์ไม่ถูกต้อง",
+        description: "กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก",
+        variant: "destructive",
+      })
+      return
+    }
 
     const deliveryAddress = deliveryLocationOption === "อื่นๆ" ? formData.customDeliveryAddress : deliveryLocationOption
 
@@ -79,6 +117,8 @@ export default function CheckoutPage() {
     setLoading(true)
 
     try {
+      recordOrderAttempt()
+
       const sessionId = getSessionId()
       const { subtotal, discount, total } = getCartTotalWithDiscount()
 
@@ -96,19 +136,22 @@ export default function CheckoutPage() {
         paymentSlipUrl = urlData.publicUrl
       }
 
+      const thailandTime = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString()
+
       const orderData = {
         session_id: sessionId,
         customer_name: formData.customerName,
         customer_phone: formData.customerPhone,
         delivery_address: deliveryAddress,
         spice_level: formData.spiceLevel,
-        payment_method: paymentMethod, // This is already 'slip' or 'cash' from state
-        payment_slip_url: paymentSlipUrl || "", // Send empty string instead of null
+        payment_method: paymentMethod,
+        payment_slip_url: paymentSlipUrl || "",
         subtotal_amount: subtotal,
         discount_amount: discount,
         total_amount: total,
         notes: formData.notes,
         status: "pending",
+        created_at: thailandTime, // Set Thailand time explicitly
       }
 
       const { data: createdOrder, error: orderError } = await supabase
@@ -175,6 +218,20 @@ export default function CheckoutPage() {
           กลับไปตะกร้า
         </Button>
 
+        {isBlocked && (
+          <Card className="mb-4 border-2 border-red-500 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-bold text-red-900 mb-1">ระบบป้องกันการก่อกวน</h3>
+                  <p className="text-red-800 text-sm">{blockMessage}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
@@ -194,15 +251,25 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="customerPhone">เบอร์โทรศัพท์ *</Label>
+                  <Label htmlFor="customerPhone">เบอร์โทรศัพท์ (10 หลัก) *</Label>
                   <Input
                     id="customerPhone"
                     type="tel"
                     required
+                    maxLength={10}
                     value={formData.customerPhone}
-                    onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                    placeholder="0xx-xxx-xxxx"
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, "")
+                      setFormData({ ...formData, customerPhone: value })
+                    }}
+                    placeholder="0812345678"
+                    className={formData.customerPhone && formData.customerPhone.length !== 10 ? "border-red-500" : ""}
                   />
+                  {formData.customerPhone && formData.customerPhone.length !== 10 && (
+                    <p className="text-xs text-red-600 mt-1">
+                      กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก (ปัจจุบัน: {formData.customerPhone.length} หลัก)
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -327,7 +394,6 @@ export default function CheckoutPage() {
                       <CardTitle className="text-lg text-blue-900">ข้อมูลการโอนเงิน</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* PromptPay Number */}
                       <div>
                         <Label className="text-sm text-gray-700 mb-2 block">หมายเลขพร้อมเพย์</Label>
                         <div className="flex gap-2">
@@ -343,7 +409,6 @@ export default function CheckoutPage() {
                         </div>
                       </div>
 
-                      {/* QR Code */}
                       <div>
                         <Label className="text-sm text-gray-700 mb-2 block">QR Code พร้อมเพย์</Label>
                         <div className="flex justify-center bg-white p-4 rounded-lg">
@@ -424,14 +489,16 @@ export default function CheckoutPage() {
 
               <Button
                 type="submit"
-                disabled={loading}
-                className="w-full bg-red-600 hover:bg-red-700 text-white text-lg py-6"
+                disabled={loading || isBlocked}
+                className="w-full bg-red-600 hover:bg-red-700 text-white text-lg py-6 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
                     <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                     กำลังสั่งอาหาร...
                   </>
+                ) : isBlocked ? (
+                  "ถูกบล็อคชั่วคราว"
                 ) : (
                   "ยืนยันการสั่งซื้อ"
                 )}

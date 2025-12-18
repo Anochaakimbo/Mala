@@ -11,6 +11,8 @@ export type CartItem = {
 const CART_KEY = "mala_cart"
 const SESSION_KEY = "mala_session_id"
 const ORDER_HISTORY_KEY = "mala_order_history"
+const RATE_LIMIT_KEY = "mala_rate_limit"
+const BLOCK_KEY = "mala_block_until"
 
 // Generate a unique session ID for each device
 export function getSessionId(): string {
@@ -128,4 +130,80 @@ export function getOrderHistory(): string[] {
   const history = historyData ? JSON.parse(historyData) : {}
 
   return history[sessionId] || []
+}
+
+// Rate limiting functions to prevent spam orders
+export function checkRateLimit(): { allowed: boolean; message?: string; waitTime?: number } {
+  if (typeof window === "undefined") return { allowed: true }
+
+  const sessionId = getSessionId()
+  const blockUntilData = localStorage.getItem(BLOCK_KEY)
+  const blockData = blockUntilData ? JSON.parse(blockUntilData) : {}
+
+  // Check if session is currently blocked
+  if (blockData[sessionId]) {
+    const blockUntil = new Date(blockData[sessionId]).getTime()
+    const now = Date.now()
+
+    if (now < blockUntil) {
+      const remainingMinutes = Math.ceil((blockUntil - now) / 60000)
+      return {
+        allowed: false,
+        message: `คุณถูกบล็อคชั่วคราวเนื่องจากสั่งอาหารบ่อยเกินไป กรุณารอ ${remainingMinutes} นาที`,
+        waitTime: remainingMinutes,
+      }
+    } else {
+      // Block expired, remove it
+      delete blockData[sessionId]
+      localStorage.setItem(BLOCK_KEY, JSON.stringify(blockData))
+    }
+  }
+
+  // Check rate limit (3 orders within 20 seconds)
+  const rateLimitData = localStorage.getItem(RATE_LIMIT_KEY)
+  const rateLimits = rateLimitData ? JSON.parse(rateLimitData) : {}
+
+  const now = Date.now()
+  const sessionLimits = rateLimits[sessionId] || []
+
+  // Filter out old timestamps (older than 20 seconds)
+  const recentOrders = sessionLimits.filter((timestamp: number) => now - timestamp < 20000)
+
+  if (recentOrders.length >= 3) {
+    // Block for 10 minutes
+    const blockUntil = new Date(now + 10 * 60 * 1000).toISOString()
+    blockData[sessionId] = blockUntil
+    localStorage.setItem(BLOCK_KEY, JSON.stringify(blockData))
+
+    // Clear rate limit data for this session
+    delete rateLimits[sessionId]
+    localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(rateLimits))
+
+    return {
+      allowed: false,
+      message: "คุณสั่งอาหารบ่อยเกินไป ระบบได้ทำการบล็อคชั่วคราว 10 นาที เพื่อป้องกันการก่อกวน",
+      waitTime: 10,
+    }
+  }
+
+  return { allowed: true }
+}
+
+export function recordOrderAttempt(): void {
+  if (typeof window === "undefined") return
+
+  const sessionId = getSessionId()
+  const rateLimitData = localStorage.getItem(RATE_LIMIT_KEY)
+  const rateLimits = rateLimitData ? JSON.parse(rateLimitData) : {}
+
+  const now = Date.now()
+  const sessionLimits = rateLimits[sessionId] || []
+
+  // Add current timestamp
+  sessionLimits.push(now)
+
+  // Keep only recent timestamps (last 20 seconds)
+  rateLimits[sessionId] = sessionLimits.filter((timestamp: number) => now - timestamp < 20000)
+
+  localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(rateLimits))
 }
