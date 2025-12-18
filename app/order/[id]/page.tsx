@@ -219,7 +219,17 @@ export default function OrderStatusPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">วันที่สั่ง</p>
-              <p>{new Date(order.created_at).toLocaleString("th-TH")}</p>
+              <p>
+                {new Date(order.created_at).toLocaleString("th-TH", {
+                  timeZone: "UTC",
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })}
+              </p>
             </div>
           </CardContent>
         </Card>

@@ -136,7 +136,7 @@ export default function CheckoutPage() {
         paymentSlipUrl = urlData.publicUrl
       }
 
-      const thailandTime = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString()
+      const thailandTime = new Date(new Date().getTime() + 7 * 60 * 60 * 1000).toISOString()
 
       const orderData = {
         session_id: sessionId,
@@ -151,7 +151,7 @@ export default function CheckoutPage() {
         total_amount: total,
         notes: formData.notes,
         status: "pending",
-        created_at: thailandTime, // Set Thailand time explicitly
+        created_at: thailandTime, // Use Thailand time instead of UTC
       }
 
       const { data: createdOrder, error: orderError } = await supabase
