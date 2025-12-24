@@ -114,9 +114,23 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
           <p className="text-muted-foreground text-lg">ไม่พบเมนูที่ค้นหา</p>
         </div>
       ) : !availableItems || availableItems.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">วันนี้ร้านปิดไว้กลับมาสั่งใหม่วันหลังนะจ้ะ</p>
-        </div>
+  <div className="text-center py-20"> {/* เพิ่ม py เป็น 20 เพื่อให้มีพื้นที่บนล่างมากขึ้น */}
+  <p className="text-muted-foreground text-4xl md:text-6xl font-bold mb-6">
+    ขออภัยค่ะ ขณะนี้ร้านปิด
+  </p>
+  <p className="text-muted-foreground text-xl md:text-2xl">
+    ลูกค้าสามารถตรวจสอบเวลาเปิด-ปิดได้ที่เพจ Facebook:
+    <br /> {/* ขึ้นบรรทัดใหม่เพื่อให้ลิงก์ดูเด่น */}
+    <a 
+      href="https://www.facebook.com/profile.php?id=100064133860555" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="text-blue-500 hover:text-blue-700 underline text-3xl md:text-5xl mt-4 inline-block"
+    >
+      หม่าล่า 3 ระดับ
+    </a>
+  </p>
+</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {availableItems.map((item) => (
