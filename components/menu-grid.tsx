@@ -39,10 +39,16 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
           table: "menu_items",
         },
         (payload) => {
+          console.log("[v0] Menu item changed:", payload.eventType, payload)
+
           if (payload.eventType === "INSERT") {
             setMenuItems((prev) => [payload.new as MenuItem, ...prev])
           } else if (payload.eventType === "UPDATE") {
-            setMenuItems((prev) => prev.map((item) => (item.id === payload.new.id ? (payload.new as MenuItem) : item)))
+            setMenuItems((prev) => {
+              const updated = prev.map((item) => (item.id === payload.new.id ? (payload.new as MenuItem) : item))
+              console.log("[v0] Updated menu items:", updated)
+              return updated
+            })
           } else if (payload.eventType === "DELETE") {
             setMenuItems((prev) => prev.filter((item) => item.id !== payload.old.id))
           }
@@ -81,18 +87,19 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
     })
   }
 
-  const availableItems = menuItems
-    .filter((item) => item.is_available)
-    .filter((item) => {
-      if (!searchQuery) return true
-      const query = searchQuery.toLowerCase()
-      return (
-        item.name.toLowerCase().includes(query) ||
-        item.name_en?.toLowerCase().includes(query) ||
-        item.description?.toLowerCase().includes(query) ||
-        item.price.toString().includes(query)
-      )
-    })
+  const availableItems = menuItems.filter((item) => {
+    const isAvailable = item.is_available
+    const matchesSearch =
+      !searchQuery ||
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.name_en?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.price.toString().includes(searchQuery)
+
+    return isAvailable && matchesSearch
+  })
+
+  console.log("[v0] Available items count:", availableItems.length, "Total items:", menuItems.length)
 
   return (
     <div className="space-y-6">
@@ -113,24 +120,22 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
         <div className="text-center py-12">
           <p className="text-muted-foreground text-lg">ไม่พบเมนูที่ค้นหา</p>
         </div>
-      ) : !availableItems || availableItems.length === 0 ? (
-  <div className="text-center py-20"> {/* เพิ่ม py เป็น 20 เพื่อให้มีพื้นที่บนล่างมากขึ้น */}
-  <p className="text-muted-foreground text-4xl md:text-6xl font-bold mb-6">
-    ขออภัยค่ะ ขณะนี้ร้านปิด
-  </p>
-  <p className="text-muted-foreground text-xl md:text-2xl">
-    ลูกค้าสามารถตรวจสอบเวลาเปิด-ปิดได้ที่เพจ Facebook:
-    <br /> {/* ขึ้นบรรทัดใหม่เพื่อให้ลิงก์ดูเด่น */}
-    <a 
-      href="https://www.facebook.com/profile.php?id=100064133860555" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="text-blue-500 hover:text-blue-700 underline text-3xl md:text-5xl mt-4 inline-block"
-    >
-      หม่าล่า 3 ระดับ
-    </a>
-  </p>
-</div>
+      ) : availableItems.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-muted-foreground text-4xl md:text-6xl font-bold mb-6">ขออภัยค่ะ ขณะนี้ร้านปิด</p>
+          <p className="text-muted-foreground text-xl md:text-2xl">
+            ลูกค้าสามารถตรวจสอบเวลาเปิด-ปิดได้ที่เพจ Facebook:
+            <br />
+            <a
+              href="https://www.facebook.com/profile.php?id=100064133860555"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-700 underline text-3xl md:text-5xl mt-4 inline-block"
+            >
+              หม่าล่า 3 ระดับ
+            </a>
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {availableItems.map((item) => (
