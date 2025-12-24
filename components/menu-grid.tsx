@@ -115,7 +115,7 @@ export function MenuGrid({ items }: { items: MenuItem[] }) {
         </div>
       ) : !availableItems || availableItems.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">ยังไม่มีเมนูในขณะนี้</p>
+          <p className="text-muted-foreground text-lg">วันนี้ร้านปิดไว้กลับมาสั่งใหม่วันหลังนะจ้ะ</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
